@@ -35,12 +35,14 @@ The server creates an HTTP response to send back to the client. This includes:
 7. Sending HTTP Responses  
 The server sends the generated response back to the client over the established connection.
 
-8. Logging  
+
+
+-[] Logging  
 Recording details about incoming requests and outgoing responses for monitoring and debugging purposes.
 
-9. Connection Management  
+-[] Connection Management  
 - Keep-Alive: Managing persistent connections to improve performance.
 - Closing Connections: Properly closing connections after the response is sent or when the client disconnects.
 
-10. Concurrency Handling
+-[] Concurrency Handling
 Managing multiple simultaneous client connections, often using multi-threading, multi-processing, or asynchronous I/O.
