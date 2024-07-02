@@ -6,10 +6,10 @@ A simple Http server written for learning purposes with C that utilizes the Linu
 
 An HTTP server is responsible for handling client requests and serving responses over the HTTP protocol. Here are the core functionalities of an HTTP server:
 
-1. Listening for Incoming Connections
+1. Listening for Incoming Connections \\
 The server listens on a specified port for incoming TCP connections from clients.
 
-2. Accepting Client Connections
+2. Accepting Client Connections \\
 Once a connection request is detected, the server accepts the connection, establishing a communication link with the client.
 
 3. Receiving HTTP Requests
