@@ -4,7 +4,32 @@
 #include <string.h>
 #include <stdio.h>
 
-#define BUFSIZE 1024 * 50
+#define BUFSIZE 1024 * 64
+#define MAX_HEADERS 64
+#define MAX_BODY_SIZE 1024
+
+struct http_request_line {
+  char method[16];
+  char version[16];
+  char uri[256];
+};
+
+struct http_header {
+  char value[256];
+  char name[64];
+};
+
+struct URI {
+  char path[256];
+  char query_string[256];
+};
+
+struct http_request {
+  struct http_request_line request_line;
+  struct http_header headers[MAX_HEADERS];
+  int header_count;
+  char body[MAX_BODY_SIZE];
+};
 
 int  main() {
   struct sockaddr_in addr;
@@ -34,6 +59,30 @@ int  main() {
     perror("accept error\n");
 
   ssize_t n = recv(cfd, buf, BUFSIZE, 0);
-  printf("data: %s", buf);
+  printf("data: %s\n", buf);
+
+  struct http_request request;
+
+  // PARSE REQUEST:
+  int i = 0;
+  for(; i < n; i++)
+    if(buf[i] != ' ')
+      continue;
+    else
+      break;
+  
+  strncpy(request.request_line.method, buf, i + 1);
+  printf("METHOD: %s\n", request.request_line.method);
+  // get request type
+
+  // deconstruct URL into scheme, server, path, query string
+  // read headers [key]: [value]
+  // read body
+
+  // SEND RESPONSE:
+  // Response code and description
+  // headers
+  // body
+
 }
 
