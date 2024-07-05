@@ -5,39 +5,35 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <fcntl.h>
 
 #define BUFSIZE 1024 * 64
-#define MAX_HEADERS 64
-#define MAX_BODY_SIZE 1024
 
-struct URI {
-  int uri_length;
-  char path[256];
-  char query_string[256];
-};
+#define OK "HTTP/1.0 200 OK\r\n"
+#define CONTENT_TYPE "Content-Type: text/html\r\n"
+#define CONTENT_LENGTH "Content-Length: %d\r\n"
+#define DATE "Date: "
 
-struct http_request_line {
-  struct URI uri;
-  char method[16];
-  char version[16];
-};
+enum http_method { GET, OTHER };
 
-struct http_header {
-  char name[64];
-  char value[256];
-};
+int build_http_response(char *buf) {
+  int response_size = 0;
 
-struct http_request {
-  int header_count;
-  struct http_request_line request_line;
-  struct http_header headers[MAX_HEADERS];
-  char body[MAX_BODY_SIZE];
-};
+  char file_buf[BUFSIZE];
+  int fd = open("./root/index.html", O_RDONLY);
+  ssize_t file_size = read(fd, file_buf, BUFSIZE);
+
+  strcpy(buf, OK);
+  strcpy(&buf[17], CONTENT_TYPE);
+  response_size = (int)file_size + strlen(buf);
+  sprintf(&buf[43], CONTENT_LENGTH, response_size);
+  strcat(&buf[strlen(buf)], file_buf);
+}
 
 int  main() {
   struct sockaddr_in addr;
-  int cfd;  // connection file descriptor
   socklen_t peer_addr_size;
+  enum http_method method;
   char buf[BUFSIZE];
 
   int sfd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
@@ -57,47 +53,40 @@ int  main() {
   if (listen(sfd, 5) == -1)
     perror("listen failiure\n"); 
 
-  cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
-  if (cfd == -1)
-    perror("accept error\n");
 
-  ssize_t n = recv(cfd, buf, BUFSIZE, 0);
-  printf("data: %s\n", buf);
+  while (1) {
+    int cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
+    if (cfd == -1)
+      perror("accept error\n");
+    ssize_t n = recv(cfd, buf, BUFSIZE, 0);
+    printf("data: %s\n", buf);
 
-  struct http_request request;
+    if (buf[0] == 'G'){
+      method = GET;
+    } else {
+      method = OTHER;
+    }
 
-  // PARSE REQUEST:
-  // get method
-  int i = 0;
-  for(; i < n; i++) {
-    if(buf[i] != ' ')
-      continue;
-    else
+    // clear buffer
+    memset(buf, 0, BUFSIZE);
+
+    switch (method){
+    case GET:
+      /* code */
+      // send bytes from file to response
+      int response_size = build_http_response(buf);
+
+      send(cfd, buf, response_size, 0);
+
+      memset(buf, 0, BUFSIZE);
+
       break;
-  }
-  
-  strncpy(request.request_line.method, buf, i);
-
-  int uri_idx = 0;
-  for(++i; i < n; i++) {
-    if (buf[i] == '?' || buf[i] == ' ')
+    
+    default:
       break;
-    request.request_line.uri.path[uri_idx] = buf[i];
-    uri_idx++;
+    }
+
   }
-
-  request.request_line.uri.uri_length = uri_idx;
-
-  printf("URI: %s | LEN: %d\n", request.request_line.uri.path, request.request_line.uri.uri_length);
-
-  // deconstruct URL into scheme, server, path, query string
-  // read headers [key]: [value]
-  // read body
-
-  // SEND RESPONSE:
-  // Response code and description
-  // headers
-  // body
 
   return 0;
 }
