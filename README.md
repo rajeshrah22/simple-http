@@ -34,3 +34,12 @@ The server creates an HTTP response to send back to the client. This includes:
 
 7. Sending HTTP Responses  
 The server sends the generated response back to the client over the established connection.
+
+### TO DO
+
+- [ ] Parse Request Method.
+- [ ] Parse Request Path.
+- [ ] Create Response.
+- [ ] Send Response.
+- [ ] Add Concurrency
+- [ ] Async I/O
