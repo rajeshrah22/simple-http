@@ -1,6 +1,6 @@
 # SimpleHttp
 
-A simple Http server written for learning purposes with C that utilizes the Linux Socket API.
+A simple Http server written for learning purposes with C that utilizes the Linux Socket API. We will not implement the full HTTP specification; rather, we will implement just enough to get a taste of the Socket API, concurrent programming, and potentially some defensive security measures.
 
 ## Core Functionality
 
@@ -37,9 +37,16 @@ The server sends the generated response back to the client over the established 
 
 ### TO DO
 
-- [ ] Parse Request Method.
-- [ ] Parse Request Path.
+- [x] Parse Request Method.
+- [x] Parse Request Path.
 - [ ] Create Response.
 - [ ] Send Response.
+- [ ] Resolve Path and get correct resource
 - [ ] Add Concurrency
 - [ ] Async I/O
+
+### Future Additions
+- [ ] Security Measures.
+- [ ] Support POST.
+- [ ] Refactor into a simple library.
+- [ ] More of the HTTP Spec.
