@@ -23,11 +23,19 @@ int build_http_response(char *buf) {
   int fd = open("./root/index.html", O_RDONLY);
   ssize_t file_size = read(fd, file_buf, BUFSIZE);
 
+  printf("File size: %d\n", (int)file_size);
+
   strcpy(buf, OK);
   strcpy(&buf[17], CONTENT_TYPE);
-  response_size = (int)file_size + strlen(buf);
+  response_size = (int)file_size + strlen(buf) + 3;
   sprintf(&buf[43], CONTENT_LENGTH, response_size);
-  strcat(&buf[strlen(buf)], file_buf);
+  strcat(buf, "\r\n");
+  strcat(buf, file_buf);
+  strcat(buf, "\r\n");
+
+  close(fd);
+
+  return response_size;
 }
 
 int  main() {
@@ -53,8 +61,7 @@ int  main() {
   if (listen(sfd, 5) == -1)
     perror("listen failiure\n"); 
 
-
-  while (1) {
+  while(1) {
     int cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
     if (cfd == -1)
       perror("accept error\n");
@@ -76,16 +83,20 @@ int  main() {
       // send bytes from file to response
       int response_size = build_http_response(buf);
 
-      send(cfd, buf, response_size, 0);
+      int n = send(cfd, buf, response_size, 0);
+
+      if (n != response_size)
+        perror("response not completely sent\n");
 
       memset(buf, 0, BUFSIZE);
+
+      close(cfd);
 
       break;
     
     default:
       break;
     }
-
   }
 
   return 0;
