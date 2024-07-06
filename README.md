@@ -40,7 +40,7 @@ The server sends the generated response back to the client over the established 
 - [x] Parse Request Method.
   - [x] GET
   - [ ] POST
-- [] Parse Request Path.
+- [ ] Parse Request Path.
 - [x] Create Response.
 - [x] Send Response.
 - [ ] Resolve Path and get correct resource
