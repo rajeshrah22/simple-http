@@ -38,9 +38,11 @@ The server sends the generated response back to the client over the established 
 ### TO DO
 
 - [x] Parse Request Method.
-- [x] Parse Request Path.
-- [ ] Create Response.
-- [ ] Send Response.
+  - [x] GET
+  - [ ] POST
+- [] Parse Request Path.
+- [x] Create Response.
+- [x] Send Response.
 - [ ] Resolve Path and get correct resource
 - [ ] Add Concurrency
 - [ ] Async I/O
