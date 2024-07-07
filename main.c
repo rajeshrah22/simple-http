@@ -14,20 +14,26 @@
 #define CONTENT_LENGTH "Content-Length: %d\r\n"
 #define DATE "Date: "
 
+#define PORT 3000
+#define LOCALHOST "127.0.0.1"
+#define BACKLOG 50
+
 enum http_method { GET, OTHER };
 
 int build_http_response(char *buf) {
   int response_size = 0;
-
   char file_buf[BUFSIZE];
-  int fd = open("./root/index.html", O_RDONLY);
-  ssize_t file_size = read(fd, file_buf, BUFSIZE);
 
-  printf("File size: %d\n", (int)file_size);
+  int fd = open("./root/index.html", O_RDONLY);
+  if (fd == -1) {
+    perror("Failed to open index.html");
+  }
+
+  ssize_t file_size = read(fd, file_buf, BUFSIZE);
 
   strcpy(buf, OK);
   strcpy(&buf[17], CONTENT_TYPE);
-  response_size = (int)file_size + strlen(buf) + 3;
+  response_size = (int)file_size + strlen(buf) + 2;
   sprintf(&buf[43], CONTENT_LENGTH, response_size);
   strcat(buf, "\r\n");
   strcat(buf, file_buf);
@@ -51,22 +57,23 @@ int  main() {
   }
 
   memset(&addr, 0, sizeof(addr));
+
   addr.sin_family = AF_INET;
-  addr.sin_port = htons(3000);
-  addr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
+  addr.sin_port = htons(PORT);
+  addr.sin_addr.s_addr = inet_addr(LOCALHOST); 
 
   if (bind(sfd, (struct sockaddr*) &addr, sizeof(addr)) == -1)
     perror("bind failiure\n");
 
-  if (listen(sfd, 5) == -1)
+  if (listen(sfd, BACKLOG) == -1)
     perror("listen failiure\n"); 
 
   while(1) {
+    ssize_t res;
     int cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
     if (cfd == -1)
       perror("accept error\n");
-    ssize_t n = recv(cfd, buf, BUFSIZE, 0);
-    printf("data: %s\n", buf);
+    res = recv(cfd, buf, BUFSIZE, 0);
 
     if (buf[0] == 'G'){
       method = GET;
@@ -74,18 +81,15 @@ int  main() {
       method = OTHER;
     }
 
-    // clear buffer
     memset(buf, 0, BUFSIZE);
 
     switch (method){
     case GET:
-      /* code */
-      // send bytes from file to response
       int response_size = build_http_response(buf);
 
-      int n = send(cfd, buf, response_size, 0);
+      res = send(cfd, buf, response_size, 0);
 
-      if (n != response_size)
+      if (res != response_size)
         perror("response not completely sent\n");
 
       memset(buf, 0, BUFSIZE);
@@ -97,8 +101,10 @@ int  main() {
     default:
       break;
     }
+
   }
+
+  close(sfd);
 
   return 0;
 }
-
