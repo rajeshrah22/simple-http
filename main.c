@@ -44,11 +44,40 @@ int build_http_response(char *buf) {
   return response_size;
 }
 
-int  main() {
-  struct sockaddr_in addr;
-  socklen_t peer_addr_size;
+void handle_connection(int cfd, char *buf) {
+  ssize_t res = recv(cfd, buf, BUFSIZE, 0);
   enum http_method method;
-  char buf[BUFSIZE];
+
+  if (buf[0] == 'G'){
+    method = GET;
+  } else {
+    method = OTHER;
+  }
+
+  memset(buf, 0, BUFSIZE);
+
+  switch (method){
+  case GET:
+    int response_size = build_http_response(buf);
+
+    res = send(cfd, buf, response_size, 0);
+
+    if (res != response_size)
+      perror("response not completely sent\n");
+
+    memset(buf, 0, BUFSIZE);
+
+    close(cfd);
+
+    break;
+
+  default:
+    break;
+  }
+
+}
+
+int init_server(struct sockaddr_in *addr) {
 
   int sfd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (sfd == -1) {
@@ -56,52 +85,37 @@ int  main() {
     return -1;
   }
 
-  memset(&addr, 0, sizeof(addr));
 
+  if (bind(sfd, (struct sockaddr*) addr, sizeof(addr)) == -1)
+    perror("bind failiure\n");
+    return -1;
+
+  if (listen(sfd, BACKLOG) == -1)
+    perror("listen failiure\n"); 
+    return -1;
+
+  return sfd;
+}
+
+int  main() {
+  char buf[BUFSIZE];
+  struct sockaddr_in addr;
+  socklen_t peer_addr_size;
+
+  memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_port = htons(PORT);
   addr.sin_addr.s_addr = inet_addr(LOCALHOST); 
 
-  if (bind(sfd, (struct sockaddr*) &addr, sizeof(addr)) == -1)
-    perror("bind failiure\n");
-
-  if (listen(sfd, BACKLOG) == -1)
-    perror("listen failiure\n"); 
+  int sfd = init_server(&addr);
 
   while(1) {
-    ssize_t res;
     int cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
+
     if (cfd == -1)
       perror("accept error\n");
-    res = recv(cfd, buf, BUFSIZE, 0);
 
-    if (buf[0] == 'G'){
-      method = GET;
-    } else {
-      method = OTHER;
-    }
-
-    memset(buf, 0, BUFSIZE);
-
-    switch (method){
-    case GET:
-      int response_size = build_http_response(buf);
-
-      res = send(cfd, buf, response_size, 0);
-
-      if (res != response_size)
-        perror("response not completely sent\n");
-
-      memset(buf, 0, BUFSIZE);
-
-      close(cfd);
-
-      break;
-    
-    default:
-      break;
-    }
-
+    handle_connection(cfd, buf);
   }
 
   close(sfd);
