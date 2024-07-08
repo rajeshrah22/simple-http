@@ -8,7 +8,6 @@
 #include <fcntl.h>
 
 #define BUFSIZE 1024 * 64
-#define MAX_PATH_LENGTH 512
 
 #define OK "HTTP/1.0 200 OK\r\n"
 #define CONTENT_TYPE "Content-Type: text/html\r\n"
@@ -21,19 +20,9 @@
 
 enum http_method { GET, OTHER };
 
-struct span {
-  char *str;
-  int length;
-};
-
-int build_http_response(struct span path, char *buf) {
+int build_http_response(char *buf) {
   int response_size = 0;
   char file_buf[BUFSIZE];
-
-  // decouple from original buffer
-  char *pathstring = (char *)malloc(path.length + 6);
-  strncpy(pathstring, path.str, path.length);
-  path.str = pathstring;
 
   int fd = open("./root/index.html", O_RDONLY);
   if (fd == -1) {
@@ -65,39 +54,18 @@ void handle_connection(int cfd, char *buf) {
     method = OTHER;
   }
 
-  int idx;
-  for(;idx < (int)res; idx++) {
-    if (buf[idx] != '/')
-      continue;
-    else
-      break;
-  }
-
-  struct span path;
-  path.str = &buf[idx];
-
-  int size_str = 0;
-  for(; idx < (int)res; idx++) {
-    if(buf[idx] != ' ') {
-      size_str++;
-      continue;
-    }
-    else
-      break;
-  }
-
-  path.length = size_str;
-
-  char res_buf[BUFSIZE];
+  memset(buf, 0, BUFSIZE);
 
   switch (method){
   case GET:
-    int response_size = build_http_response(path, res_buf);
+    int response_size = build_http_response(buf);
 
-    res = send(cfd, res_buf, response_size, 0);
+    res = send(cfd, buf, response_size, 0);
 
     if (res != response_size)
       perror("response not completely sent\n");
+
+    memset(buf, 0, BUFSIZE);
 
     close(cfd);
 
@@ -109,24 +77,23 @@ void handle_connection(int cfd, char *buf) {
 
 }
 
-int init_server(struct sockaddr_in addr) {
+int init_server(struct sockaddr_in *addr) {
 
-  int sfd = socket(AF_INET, SOCK_STREAM, 0);
+  int sfd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (sfd == -1) {
     perror("socket failiure\n");
     return -1;
   }
 
 
-  if (bind(sfd, (struct sockaddr*) &addr, sizeof(addr)) == -1) {
+  if (bind(sfd, (struct sockaddr*) addr, sizeof(addr)) == -1)
     perror("bind failiure\n");
     return -1;
-  }
 
-  if (listen(sfd, BACKLOG) == -1) {
+  if (listen(sfd, BACKLOG) == -1)
     perror("listen failiure\n"); 
     return -1;
-  }
+
   return sfd;
 }
 
@@ -140,11 +107,7 @@ int  main() {
   addr.sin_port = htons(PORT);
   addr.sin_addr.s_addr = inet_addr(LOCALHOST); 
 
-  int sfd = init_server(addr);
-
-  if (sfd == -1) {
-    perror("server init faliure");
-  }
+  int sfd = init_server(&addr);
 
   while(1) {
     int cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
@@ -153,8 +116,6 @@ int  main() {
       perror("accept error\n");
 
     handle_connection(cfd, buf);
-
-    memset(buf, 0, BUFSIZE);
   }
 
   close(sfd);
