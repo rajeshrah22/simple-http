@@ -31,13 +31,13 @@ int build_http_response(const struct span path, char *buf) {
   int response_size = 0;
   char file_buf[BUFSIZE];
 
-  char root_path[6] = "./root";
+  char root_path[] = "./root";
 
   char open_path[BUFSIZE];
-  if(path.length > 1) {
+  if (path.length > 1) {
     snprintf(open_path, sizeof(open_path), "%s%s", root_path, path.str);
   } else {
-    strncpy(open_path, DEFAULT_PATH, sizeof(open_path));
+    strncpy(open_path, DEFAULT_PATH, sizeof(open_path) - 1);
   }
 
   int fd = open(open_path, O_RDONLY);
@@ -67,8 +67,10 @@ int build_http_response(const struct span path, char *buf) {
   return response_size;
 }
 
-void handle_connection(int cfd, char *buf) {
+void handle_connection(int cfd) {
+  char buf[BUFSIZE];
   ssize_t res = recv(cfd, buf, BUFSIZE, 0);
+
   enum http_method method;
 
   if (buf[0] == 'G') {
@@ -79,7 +81,7 @@ void handle_connection(int cfd, char *buf) {
 
   char path[256];
 
-  int idx;
+  int idx = 0;
   for(; idx < (int)res; idx++) {
     if(buf[idx] != '/')
       continue;
@@ -107,6 +109,8 @@ void handle_connection(int cfd, char *buf) {
   switch(method) {
   case GET:
     int response_size = build_http_response(path_span, buf);
+    if (response_size < 0)
+      perror("failed build http response\n");
 
     res = send(cfd, buf, response_size, 0);
 
@@ -114,8 +118,6 @@ void handle_connection(int cfd, char *buf) {
       perror("response not completely sent\n");
 
     memset(buf, 0, BUFSIZE);
-
-    close(cfd);
 
     break;
 
@@ -133,6 +135,12 @@ int init_server(struct sockaddr_in *addr) {
     return -1;
   }
 
+  int opt = 1;
+  if (setsockopt(sfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    perror("setsockopt");
+    close(sfd);
+    return -1;
+  }
 
   if (bind(sfd, (struct sockaddr*) addr, sizeof(struct sockaddr_in)) == -1) {
     perror("bind failiure\n");
@@ -147,7 +155,6 @@ int init_server(struct sockaddr_in *addr) {
 }
 
 int  main() {
-  char buf[BUFSIZE];
   struct sockaddr_in addr;
   socklen_t peer_addr_size;
 
@@ -170,7 +177,9 @@ int  main() {
     if (cfd == -1)
       perror("accept error\n");
 
-    handle_connection(cfd, buf);
+    handle_connection(cfd);
+
+    close(cfd);
   }
 
   close(sfd);

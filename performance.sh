@@ -1,16 +1,27 @@
 #!/bin/bash
 
 URL="http://localhost:3000"
-REQUESTS=100
+REQUESTS=1000
 OUTPUT_FILE="output.txt"
 
 OUTPUT_FORMAT="HTTP_CODE: %{http_code}, TIME_TOTAL: %{time_total}, SIZE: %{size_request}\n"
 
 exec 3>"$OUTPUT_FILE"
 
-for ((i=1; i<=REQUESTS; i++))
+FILES=("hello.html" "table.html" "/")
+
+make_request() {
+  local file="$1"
+  local url="$URL"
+  if [ "$file" != "/" ]; then
+    url="$url/$file"
+  fi
+  curl -o /dev/null -s -w "$OUTPUT_FORMAT" "$url" >&3
+}
+
+for ((i=0; i<REQUESTS; i++))
 do
-  { curl -o /dev/null -s -w "$OUTPUT_FORMAT" "$URL" >&3; } &
+  make_request "${FILES[i % ${#FILES[@]}]}" &
 done
 
 wait
@@ -28,6 +39,7 @@ calculate_statistics() {
   }
   {
     gsub(/,/, "");
+    $4 = $4 * 1000
     sum += $4
     sumsq += $4 * $4
     if ($4 > max) max = $4  # Calculate max
@@ -35,7 +47,7 @@ calculate_statistics() {
   } 
   END {
     if (count > 0) {
-      average = sum / count;
+      average = (sum / count);
       variance = (sumsq / count) - (average * average);
       stdev = sqrt(variance);
       print count, average, stdev, max, min;  # Print the sum, average age, and count
@@ -53,7 +65,7 @@ calculate_statistics() {
 calculate_statistics $REQUESTS;
 
 echo "Count: $count"
-echo "Average TIME_TOTAL: $average seconds"
-echo "stdev TIME_TOTAL: $stdev"
-echo "max TIME_TOTAL: $max"
-echo "min TIME_TOTAL: $min"
+echo "Average TIME_TOTAL: $average ms"
+echo "stdev TIME_TOTAL: $stdev ms"
+echo "max TIME_TOTAL: $max ms"
+echo "min TIME_TOTAL: $min ms"
