@@ -69,7 +69,7 @@ int build_http_response(const struct span path, char *buf) {
   return response_size;
 }
 
-void handle_connection(void* cfd_void) {
+void* handle_connection(void* cfd_void) {
   int cfd = *((int*)cfd_void);
   char buf[BUFSIZE];
   ssize_t res = recv(cfd, buf, BUFSIZE, 0);
@@ -130,6 +130,7 @@ void handle_connection(void* cfd_void) {
 
   close(cfd);
   free(cfd_void);
+  return 0;
 }
 
 int init_server(struct sockaddr_in *addr) {
@@ -162,6 +163,7 @@ int init_server(struct sockaddr_in *addr) {
 int  main() {
   struct sockaddr_in addr;
   socklen_t peer_addr_size;
+  pthread_t thread;
 
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
@@ -183,7 +185,7 @@ int  main() {
     if (*cfd == -1)
       perror("accept error\n");
 
-    handle_connection(cfd);
+    pthread_create(&thread, 0, handle_connection, cfd);
   }
 
   close(sfd);
