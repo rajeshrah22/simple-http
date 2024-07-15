@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <pthread.h>
 
 #define BUFSIZE 1024 * 64
 
@@ -16,7 +18,7 @@
 
 #define PORT 3000
 #define LOCALHOST "127.0.0.1"
-#define BACKLOG 50
+#define BACKLOG 25
 
 #define DEFAULT_PATH "./root/index.html"
 
@@ -67,7 +69,8 @@ int build_http_response(const struct span path, char *buf) {
   return response_size;
 }
 
-void handle_connection(int cfd) {
+void handle_connection(void* cfd_void) {
+  int cfd = *((int*)cfd_void);
   char buf[BUFSIZE];
   ssize_t res = recv(cfd, buf, BUFSIZE, 0);
 
@@ -125,6 +128,8 @@ void handle_connection(int cfd) {
     break;
   }
 
+  close(cfd);
+  free(cfd_void);
 }
 
 int init_server(struct sockaddr_in *addr) {
@@ -172,14 +177,13 @@ int  main() {
   }
 
   while(1) {
-    int cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
+    int *cfd = malloc(sizeof(int));
+    *cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
 
-    if (cfd == -1)
+    if (*cfd == -1)
       perror("accept error\n");
 
     handle_connection(cfd);
-
-    close(cfd);
   }
 
   close(sfd);
