@@ -64,7 +64,6 @@ calculate_statistics() {
 
 calculate_statistics $REQUESTS;
 
-echo "Count: $count"
 echo "Average TIME_TOTAL: $average ms"
 echo "stdev TIME_TOTAL: $stdev ms"
 echo "max TIME_TOTAL: $max ms"
