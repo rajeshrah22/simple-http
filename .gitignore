@@ -1,4 +1,5 @@
 simpleHttp
 *.o
 *.txt
+root/*
 
