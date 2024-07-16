@@ -1,7 +1,7 @@
 #!/bin/bash
 
 URL="http://localhost:3000"
-REQUESTS=1000
+REQUESTS=500
 OUTPUT_FILE="output.txt"
 
 OUTPUT_FORMAT="HTTP_CODE: %{http_code}, TIME_TOTAL: %{time_total}, SIZE: %{size_request}\n"

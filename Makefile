@@ -4,7 +4,7 @@ CFLAGS = -Wall -Werror -g
 
 PROGRAM = simpleHttp
 
-SRCS = main.c
+SRCS = main.c my_queue.c
 
 OBJS = $(SRCS:.c=.o)
 
