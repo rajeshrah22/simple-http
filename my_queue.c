@@ -28,7 +28,11 @@ void en_queue(struct my_queue *queuestrct, const int *cfd) {
   new->data = *cfd;
   new->next = queuestrct->tail;
   new->prev = 0;
+  if (queuestrct->tail)
+    queuestrct->tail->prev = new;
   queuestrct->tail = new;
+  if (!queuestrct->head)
+    queuestrct->head = queuestrct->tail;
 }
 
 int de_queue(struct my_queue *queuestrct) {
