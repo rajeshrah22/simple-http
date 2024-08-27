@@ -5,8 +5,6 @@
 
 struct my_queue;
 
-// test create
-
 int test_create() {
   struct my_queue q;
 
@@ -17,8 +15,6 @@ int test_create() {
    
   return 0;
 }
-
-// test delete
 
 int test_destroy() {
   struct my_queue q;
@@ -43,8 +39,8 @@ int test_destroy_nonempty() {
   int cfd = 1;
   int cfd2 = 2;
 
-  en_queue(&q, &cfd);
-  en_queue(&q, &cfd2);
+  en_queue(&q, cfd);
+  en_queue(&q, cfd2);
 
   destroy_queue(&q);
 
@@ -65,7 +61,7 @@ int test_en_queue() {
   
   int cfd = 1;
 
-  en_queue(&q, &cfd);
+  en_queue(&q, cfd);
 
   if (q.head == 0 || q.tail == 0)
     return -1;
@@ -93,8 +89,8 @@ int test_en_queue_nonempty() {
   int cfd = 1;
   int cfd2 = 2;
 
-  en_queue(&q, &cfd);
-  en_queue(&q, &cfd2);
+  en_queue(&q, cfd);
+  en_queue(&q, cfd2);
 
   if (q.head->data != 1)
     return -1;
@@ -125,7 +121,7 @@ int test_de_queue() {
   
   int cfd = 1;
 
-  en_queue(&q, &cfd);
+  en_queue(&q, cfd);
 
   int result = de_queue(&q);
 
@@ -146,8 +142,8 @@ int test_de_queue_nonempty() {
   int cfd = 1;
   int cfd2 = 2;
 
-  en_queue(&q, &cfd);
-  en_queue(&q, &cfd2);
+  en_queue(&q, cfd);
+  en_queue(&q, cfd2);
 
   int result = de_queue(&q);
 

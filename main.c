@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <pthread.h>
-#include <pthread.h>
+#include "my_queue.h"
 
 #define BUFSIZE 1024 * 64
 
@@ -20,6 +20,8 @@
 #define LOCALHOST "127.0.0.1"
 #define BACKLOG 25
 
+#define NTHREADS 9
+
 #define DEFAULT_PATH "./root/index.html"
 
 enum http_method { GET, OTHER };
@@ -28,6 +30,9 @@ struct span {
   char *str;
   int length;
 };
+
+pthread_mutex_t mutex_1 = PTHREAD_MUTEX_INITIALIZER;
+struct my_queue task_queue;
 
 int build_http_response(const struct span path, char *buf) {
   int response_size = 0;
@@ -69,8 +74,7 @@ int build_http_response(const struct span path, char *buf) {
   return response_size;
 }
 
-void* handle_connection(void* cfd_void) {
-  int cfd = *((int*)cfd_void);
+void* handle_connection(int cfd) {
   char buf[BUFSIZE];
   ssize_t res = recv(cfd, buf, BUFSIZE, 0);
 
@@ -129,7 +133,6 @@ void* handle_connection(void* cfd_void) {
   }
 
   close(cfd);
-  free(cfd_void);
   return 0;
 }
 
@@ -160,10 +163,34 @@ int init_server(struct sockaddr_in *addr) {
   return sfd;
 }
 
+void* thread_function(void *void_p) {
+    while (1) {
+      if (!is_empty(&task_queue)) {
+        pthread_mutex_lock(&mutex_1);
+        int cfd = de_queue(&task_queue);
+        pthread_mutex_unlock(&mutex_1);
+        handle_connection(cfd);
+      } 
+    }
+}
+
+int init_threads(pthread_t *threads, int n_threads) {
+  for (int i = 0; i < n_threads; i++) {
+    pthread_t res = pthread_create(&threads[i], 0, thread_function, 0);
+    if (res != 0)
+      threads[i] = res;
+    else
+      return -1;
+  }
+
+  return 0;
+}
+
+
 int  main() {
   struct sockaddr_in addr;
   socklen_t peer_addr_size;
-  pthread_t thread;
+  pthread_t threads[NTHREADS];
 
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
@@ -178,14 +205,19 @@ int  main() {
     return -1;
   }
 
-  while(1) {
-    int *cfd = malloc(sizeof(int));
-    *cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
+  if (init_threads(threads, NTHREADS) != 0) {
+    printf("Error init threads");
+  }
 
-    if (*cfd == -1)
+  while(1) {
+    int cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
+
+    if (cfd == -1)
       perror("accept error\n");
 
-    pthread_create(&thread, 0, handle_connection, cfd);
+    pthread_mutex_lock(&mutex_1);
+    en_queue(&task_queue, cfd);
+    pthread_mutex_unlock(&mutex_1);
   }
 
   close(sfd);

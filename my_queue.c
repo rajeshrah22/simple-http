@@ -8,6 +8,10 @@ void init_queue(struct my_queue *queuestrct) {
   queuestrct->tail = 0;
 }
 
+int is_empty(struct my_queue *queuestrct) {
+  return queuestrct->head == 0 && queuestrct->tail == 0;
+}
+
 void destroy_queue(struct my_queue *queuestrct) {
   struct node *temp = 0;
   struct node *head = queuestrct->head;
@@ -22,11 +26,11 @@ void destroy_queue(struct my_queue *queuestrct) {
   queuestrct->tail = 0;
 }
 
-void en_queue(struct my_queue *queuestrct, const int *cfd) {
+void en_queue(struct my_queue *queuestrct, const int cfd) {
   struct node *new = (struct node*)malloc(sizeof(struct node));
   if (!new)
     return;
-  new->data = *cfd;
+  new->data = cfd;
   new->next = queuestrct->tail;
   new->prev = 0;
   if (queuestrct->tail)
