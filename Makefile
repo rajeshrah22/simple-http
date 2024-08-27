@@ -20,6 +20,7 @@ $(PROGRAM): $(OBJS)
 
 test: $(TEST_DEPS)
 		$(CC) $(CFLAGS) -o test $(TEST_DEPS)
+
 clean:
 	rm -f $(OBJS) $(PROGRAM) test $(TEST_DEPS)
 
