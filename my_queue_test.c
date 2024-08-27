@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "my_queue.h"
 
-#define NTESTS 6
+#define NTESTS 7
 
 struct my_queue;
 
@@ -20,7 +20,39 @@ int test_create() {
 
 // test delete
 
-int test_delete() {
+int test_destroy() {
+  struct my_queue q;
+
+  init_queue(&q);
+
+  destroy_queue(&q);
+
+  if (q.head != 0)
+    return -1;
+  if (q.tail != 0)
+    return -1;
+
+  return 0;
+}
+
+int test_destroy_nonempty() {
+  struct my_queue q;
+
+  init_queue(&q);
+  
+  int cfd = 1;
+  int cfd2 = 2;
+
+  en_queue(&q, &cfd);
+  en_queue(&q, &cfd2);
+
+  destroy_queue(&q);
+
+  if (q.head != 0)
+    return -1;
+  if (q.tail != 0)
+    return -1;
+
   return 0;
 }
 
@@ -145,9 +177,10 @@ int main() {
   
   int (*fun_list[NTESTS]) () = {
     test_create,
-    test_delete,
+    test_destroy,
     test_en_queue,
     test_de_queue,
+    test_destroy_nonempty,
     test_en_queue_nonempty,
     test_de_queue_nonempty
   };

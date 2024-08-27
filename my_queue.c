@@ -14,7 +14,8 @@ void destroy_queue(struct my_queue *queuestrct) {
   while(head) {
     temp = head;
     head = head->prev;
-    head->next = 0;
+    if (head)
+      head->next = 0;
     free(temp);
   }
   queuestrct->head = 0;
@@ -41,6 +42,8 @@ int de_queue(struct my_queue *queuestrct) {
   int data = queuestrct->head->data;
   struct node *temp = queuestrct->head;
   queuestrct->head = queuestrct->head->prev;
+  if (queuestrct->head)
+    queuestrct->head->next = 0;
   if (queuestrct->tail == temp)
     queuestrct->tail = 0;
   free(temp);
