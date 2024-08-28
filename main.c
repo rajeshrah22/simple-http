@@ -32,6 +32,7 @@ struct span {
 };
 
 pthread_mutex_t mutex_1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t queue_cond = PTHREAD_COND_INITIALIZER;
 struct my_queue task_queue;
 
 int build_http_response(const struct span path, char *buf) {
@@ -90,10 +91,11 @@ void* handle_connection(int cfd) {
 
   int idx = 0;
   for(; idx < (int)res; idx++) {
-    if(buf[idx] != '/')
+    if(buf[idx] != '/') {
       continue;
-    else
-    break;
+    } else {
+      break;
+    }
   }
 
   int path_idx = 0;
@@ -116,13 +118,14 @@ void* handle_connection(int cfd) {
   switch(method) {
   case GET:
     int response_size = build_http_response(path_span, buf);
-    if (response_size < 0)
+    if (response_size < 0) {
       perror("failed build http response\n");
-
+    }
     res = send(cfd, buf, response_size, 0);
 
-    if (res != response_size)
+    if (res != response_size) {
       perror("response not completely sent\n");
+    }
 
     memset(buf, 0, BUFSIZE);
 
@@ -164,23 +167,23 @@ int init_server(struct sockaddr_in *addr) {
 }
 
 void* thread_function(void *void_p) {
-    while (1) {
-      if (!is_empty(&task_queue)) {
-        pthread_mutex_lock(&mutex_1);
-        int cfd = de_queue(&task_queue);
-        pthread_mutex_unlock(&mutex_1);
-        handle_connection(cfd);
-      } 
+    pthread_mutex_lock(&mutex_1);
+    while(1) {
+      if (is_empty(&task_queue)) {
+        pthread_cond_wait(&queue_cond, &mutex_1);
+      }
+      int cfd = de_queue(&task_queue); 
+      handle_connection(cfd);
     }
+    pthread_mutex_unlock(&mutex_1);
 }
 
 int init_threads(pthread_t *threads, int n_threads) {
   for (int i = 0; i < n_threads; i++) {
-    pthread_t res = pthread_create(&threads[i], 0, thread_function, 0);
-    if (res != 0)
-      threads[i] = res;
-    else
+    int res = pthread_create(&threads[i], 0, thread_function, 0);
+    if (res != 0) {
       return -1;
+    }
   }
 
   return 0;
@@ -212,13 +215,20 @@ int  main() {
   while(1) {
     int cfd = accept(sfd, (struct sockaddr *) &addr, &peer_addr_size);
 
-    if (cfd == -1)
+    if (cfd == -1) {
       perror("accept error\n");
+    }
 
     pthread_mutex_lock(&mutex_1);
     en_queue(&task_queue, cfd);
+    pthread_cond_broadcast(&queue_cond);
     pthread_mutex_unlock(&mutex_1);
   }
+
+  pthread_mutex_destroy(&mutex_1);
+  pthread_cond_destroy(&queue_cond);
+
+  destroy_queue(&task_queue);
 
   close(sfd);
 
